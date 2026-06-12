@@ -603,6 +603,49 @@
       </div>
     </div>
 
+    <!-- Partners split -->
+    <div class="card">
+      <h2><span class="icon">&#129309;</span> Divisão entre Sócios</h2>
+      <p style="font-size:0.8rem;color:var(--muted);margin-bottom:16px">
+        Divide a margem de lucro entre você e o parceiro comercial.
+      </p>
+
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label style="margin:0;font-size:0.85rem">&#128187; Dev (você)</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="number" id="devPct" value="50" min="0" max="100"
+              style="width:64px;text-align:right"
+              oninput="clampPartners('dev');calculate()" />
+            <span style="color:var(--muted)">%</span>
+          </div>
+        </div>
+        <input type="range" id="devPctRange" min="0" max="100" value="50"
+          oninput="document.getElementById('devPct').value=this.value;clampPartners('dev');calculate()"
+          style="width:100%;accent-color:var(--accent)" />
+      </div>
+
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label style="margin:0;font-size:0.85rem">&#129309; Parceiro Comercial</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="number" id="partnerPct" value="50" min="0" max="100"
+              style="width:64px;text-align:right"
+              oninput="clampPartners('partner');calculate()" />
+            <span style="color:var(--muted)">%</span>
+          </div>
+        </div>
+        <input type="range" id="partnerPctRange" min="0" max="100" value="50"
+          oninput="document.getElementById('partnerPct').value=this.value;clampPartners('partner');calculate()"
+          style="width:100%;accent-color:var(--accent2)" />
+      </div>
+
+      <div style="display:flex;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:0.78rem;color:var(--muted)">
+        <span>Total das % <span id="partnerSumWarn" style="color:var(--danger);display:none">&#9888; soma ≠ 100%</span></span>
+        <span id="partnerSum" style="font-weight:600;color:var(--text)">100%</span>
+      </div>
+    </div>
+
     <!-- Phases -->
     <div class="card">
       <h2><span class="icon">&#128203;</span> Fases Sugeridas</h2>
@@ -644,6 +687,14 @@
       <div class="summary-line">
         <span>Margem de lucro</span>
         <span class="val" id="s_margin">R$ 0</span>
+      </div>
+      <div class="summary-line" style="padding-left:12px;font-size:0.78rem">
+        <span style="color:var(--muted)">&#128187; Dev (<span id="s_dev_pct">50</span>%)</span>
+        <span style="color:var(--accent)" id="s_dev_share">R$ 0</span>
+      </div>
+      <div class="summary-line" style="padding-left:12px;font-size:0.78rem">
+        <span style="color:var(--muted)">&#129309; Parceiro (<span id="s_partner_pct">50</span>%)</span>
+        <span style="color:var(--accent2)" id="s_partner_share">R$ 0</span>
       </div>
 
       <div class="total-block">
@@ -1011,6 +1062,27 @@ function syncSlider(id, valId) {
   document.getElementById(valId).textContent = document.getElementById(id).value + '%';
 }
 
+// ─── Partners split ───────────────────────────────────────────────────────────
+function clampPartners(changed) {
+  let dev     = Math.min(100, Math.max(0, +document.getElementById('devPct').value     || 0));
+  let partner = Math.min(100, Math.max(0, +document.getElementById('partnerPct').value || 0));
+
+  if (changed === 'dev') {
+    partner = 100 - dev;
+  } else {
+    dev = 100 - partner;
+  }
+
+  document.getElementById('devPct').value         = dev;
+  document.getElementById('devPctRange').value     = dev;
+  document.getElementById('partnerPct').value      = partner;
+  document.getElementById('partnerPctRange').value = partner;
+
+  const sum = dev + partner;
+  document.getElementById('partnerSum').textContent     = sum + '%';
+  document.getElementById('partnerSumWarn').style.display = sum === 100 ? 'none' : 'inline';
+}
+
 // ─── Tax Regime rendering ─────────────────────────────────────────────────────
 function onRegimeChange() {
   const key = document.getElementById('taxRegime').value;
@@ -1161,6 +1233,16 @@ function calculate() {
   document.getElementById('s_total').textContent   = fmt(total);
   document.getElementById('s_permonth').textContent = fmt(total / dur) + '/mês';
 
+  // Partners split
+  const devPct     = Math.min(100, Math.max(0, +document.getElementById('devPct').value     || 50));
+  const partnerPct = Math.min(100, Math.max(0, +document.getElementById('partnerPct').value || 50));
+  const devShare     = marginAmt * devPct     / 100;
+  const partnerShare = marginAmt * partnerPct / 100;
+  document.getElementById('s_dev_pct').textContent      = devPct;
+  document.getElementById('s_partner_pct').textContent  = partnerPct;
+  document.getElementById('s_dev_share').textContent    = fmt(devShare);
+  document.getElementById('s_partner_share').textContent = fmt(partnerShare);
+
   // Regime label on summary
   const regKey = document.getElementById('taxRegime').value;
   document.getElementById('s_tax_regime').textContent = TAX_REGIMES[regKey].label;
@@ -1224,6 +1306,8 @@ function exportPDF() {
     `  Total impostos:      ${document.getElementById('s_tax').textContent}`,
     ``,
     `Margem de lucro:       ${document.getElementById('s_margin').textContent}`,
+    `  Dev (${document.getElementById('s_dev_pct').textContent}%):          ${document.getElementById('s_dev_share').textContent}`,
+    `  Parceiro (${document.getElementById('s_partner_pct').textContent}%):      ${document.getElementById('s_partner_share').textContent}`,
     `───────────────────────────────────────`,
     `TOTAL DO PROJETO:      ${total}`,
     `Por mês:               ${pm}`,
