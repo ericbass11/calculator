@@ -179,6 +179,32 @@
       color: var(--accent2);
     }
 
+    /* Tax breakdown */
+    .tax-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .tax-table th {
+      text-align: left; color: var(--muted); font-size: 0.75rem;
+      text-transform: uppercase; letter-spacing: 0.04em; padding: 0 6px 8px;
+    }
+    .tax-table td { padding: 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .tax-table tr:last-child td { border-bottom: none; }
+    .tax-table input[type="number"] { width: 68px; text-align: right; }
+    .tax-total-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 6px 0; font-size: 0.875rem; font-weight: 600;
+      color: var(--text); border-top: 1px solid var(--border); margin-top: 8px;
+    }
+    .regime-note {
+      font-size: 0.75rem; color: var(--muted); margin-top: 12px;
+      padding: 8px 10px; background: var(--surface2);
+      border-radius: 6px; border-left: 3px solid var(--accent);
+      line-height: 1.5;
+    }
+    .tag-edit {
+      font-size: 0.68rem; padding: 1px 5px; border-radius: 4px;
+      background: rgba(108,99,255,0.15); color: var(--accent);
+      margin-left: 4px; vertical-align: middle;
+    }
+
     /* Summary card */
     .summary-card {
       background: var(--surface);
@@ -380,10 +406,31 @@
         <input type="range" id="risk" min="0" max="50" value="10" oninput="syncSlider('risk','riskVal');calculate()" />
         <span class="slider-val" id="riskVal">10%</span>
       </div>
-      <div class="slider-row">
-        <label>Impostos (sobre receita)</label>
-        <input type="range" id="tax" min="0" max="35" value="8" oninput="syncSlider('tax','taxVal');calculate()" />
-        <span class="slider-val" id="taxVal">8%</span>
+    </div>
+
+    <!-- Tax Regime -->
+    <div class="card">
+      <h2><span class="icon">&#127981;</span> Regime Tributário</h2>
+      <div style="margin-bottom:16px">
+        <label>Regime da empresa</label>
+        <select id="taxRegime" onchange="onRegimeChange()">
+          <option value="simples_1">Simples Nacional — Faixa 1 (até R$ 180k/ano) — 15,5%</option>
+          <option value="simples_2">Simples Nacional — Faixa 2 (até R$ 360k/ano) — 18,0%</option>
+          <option value="simples_3">Simples Nacional — Faixa 3 (até R$ 720k/ano) — 19,5%</option>
+          <option value="simples_4">Simples Nacional — Faixa 4 (até R$ 1,8M/ano) — 20,5%</option>
+          <option value="simples_5">Simples Nacional — Faixa 5/6 (até R$ 4,8M/ano) — 23,0%</option>
+          <option value="presumido">Lucro Presumido</option>
+          <option value="real">Lucro Real (estimado)</option>
+          <option value="mei">MEI — Prestador de Serviços</option>
+          <option value="manual" selected>Alíquota manual</option>
+          <option value="isento">Isento / Não se aplica</option>
+        </select>
+      </div>
+      <div id="taxBreakdown"></div>
+      <div id="taxNote" class="regime-note"></div>
+      <div class="tax-total-row">
+        <span>Carga tributária efetiva</span>
+        <span id="taxEffectiveRate" style="color:var(--accent2)">0%</span>
       </div>
     </div>
 
@@ -421,9 +468,10 @@
         <span class="val" id="s_risk">R$ 0</span>
       </div>
       <div class="summary-line">
-        <span>Impostos</span>
+        <span>Impostos <span id="s_tax_regime" style="font-size:0.72rem;color:var(--accent);margin-left:4px"></span></span>
         <span class="val" id="s_tax">R$ 0</span>
       </div>
+      <div id="s_tax_breakdown" style="padding-left:12px; border-bottom: 1px solid var(--border);"></div>
       <div class="summary-line">
         <span>Margem de lucro</span>
         <span class="val" id="s_margin">R$ 0</span>
@@ -451,6 +499,89 @@ const CURRENCIES = { BRL: 'R$', USD: '$', EUR: '€' };
 let team = [];
 let infra = [];
 let tools = [];
+
+// ─── Tax Regimes ─────────────────────────────────────────────────────────────
+// Rates are % applied on revenue (preço de venda), not on cost.
+// Simples Nacional Anexo V (serviços de TI)
+const TAX_REGIMES = {
+  simples_1: {
+    label: 'Simples Nacional Faixa 1',
+    unified: true,
+    effective: 15.5,
+    note: 'DAS unificado (Anexo V). Inclui IRPJ, CSLL, PIS, COFINS, CPP e ISS. Receita bruta até R$ 180.000/ano.'
+  },
+  simples_2: {
+    label: 'Simples Nacional Faixa 2',
+    unified: true,
+    effective: 18.0,
+    note: 'DAS unificado (Anexo V). Inclui IRPJ, CSLL, PIS, COFINS, CPP e ISS. Receita bruta até R$ 360.000/ano.'
+  },
+  simples_3: {
+    label: 'Simples Nacional Faixa 3',
+    unified: true,
+    effective: 19.5,
+    note: 'DAS unificado (Anexo V). Inclui IRPJ, CSLL, PIS, COFINS, CPP e ISS. Receita bruta até R$ 720.000/ano.'
+  },
+  simples_4: {
+    label: 'Simples Nacional Faixa 4',
+    unified: true,
+    effective: 20.5,
+    note: 'DAS unificado (Anexo V). Inclui IRPJ, CSLL, PIS, COFINS, CPP e ISS. Receita bruta até R$ 1.800.000/ano.'
+  },
+  simples_5: {
+    label: 'Simples Nacional Faixa 5/6',
+    unified: true,
+    effective: 23.0,
+    note: 'DAS unificado (Anexo V). Inclui IRPJ, CSLL, PIS, COFINS, CPP e ISS. Receita bruta até R$ 4.800.000/ano.'
+  },
+  presumido: {
+    label: 'Lucro Presumido',
+    unified: false,
+    taxes: [
+      { id: 'pis',    name: 'PIS',    rate: 0.65, editable: false, note: 'Cumulativo — s/ receita bruta' },
+      { id: 'cofins', name: 'COFINS', rate: 3.00, editable: false, note: 'Cumulativo — s/ receita bruta' },
+      { id: 'iss',    name: 'ISS',    rate: 5.00, editable: true,  note: 'Varia por município (2% a 5%)' },
+      { id: 'irpj',   name: 'IRPJ',   rate: 4.80, editable: false, note: '15% × base presumida de 32% p/ serviços' },
+      { id: 'csll',   name: 'CSLL',   rate: 2.88, editable: false, note: '9% × base presumida de 32% p/ serviços' },
+    ],
+    note: 'Alíquotas sobre a receita bruta. IRPJ e CSLL calculados sobre base presumida de 32% (serviços). ISS varia por município — ajuste acima.'
+  },
+  real: {
+    label: 'Lucro Real',
+    unified: false,
+    taxes: [
+      { id: 'pis',    name: 'PIS',         rate: 1.65, editable: false, note: 'Não-cumulativo — s/ receita bruta' },
+      { id: 'cofins', name: 'COFINS',      rate: 7.60, editable: false, note: 'Não-cumulativo — s/ receita bruta' },
+      { id: 'iss',    name: 'ISS',         rate: 5.00, editable: true,  note: 'Varia por município (2% a 5%)' },
+      { id: 'irpj',   name: 'IRPJ (est.)', rate: 6.00, editable: true,  note: 'Estimado — depende do lucro real apurado' },
+      { id: 'csll',   name: 'CSLL (est.)', rate: 3.24, editable: true,  note: 'Estimado — 9% s/ lucro real' },
+    ],
+    note: 'IRPJ e CSLL são estimados. No Lucro Real esses valores dependem do lucro efetivo e exigem apuração contábil. Ajuste as alíquotas conforme projeção de margem.'
+  },
+  mei: {
+    label: 'MEI',
+    unified: true,
+    fixed: true,
+    monthly: 76.90,
+    note: 'MEI Prestador de Serviços: DAS-MEI fixo de R$ 76,90/mês (2025). Não é percentual — é um valor fixo independente da receita. Válido para faturamento até R$ 81.000/ano.'
+  },
+  manual: {
+    label: 'Manual',
+    unified: true,
+    effective: 8.0,
+    editable: true,
+    note: 'Informe a alíquota total manualmente (% sobre a receita).'
+  },
+  isento: {
+    label: 'Isento',
+    unified: true,
+    effective: 0,
+    note: 'Sem incidência de impostos sobre a receita.'
+  }
+};
+
+// Live tax rates (modified by user for editable fields)
+let liveTaxRates = {};
 
 // ─── Defaults per project type ────────────────────────────────────────────────
 const DEFAULTS = {
@@ -703,12 +834,109 @@ function syncSlider(id, valId) {
   document.getElementById(valId).textContent = document.getElementById(id).value + '%';
 }
 
+// ─── Tax Regime rendering ─────────────────────────────────────────────────────
+function onRegimeChange() {
+  const key = document.getElementById('taxRegime').value;
+  const reg = TAX_REGIMES[key];
+  const breakdown = document.getElementById('taxBreakdown');
+  const note = document.getElementById('taxNote');
+
+  // Reset live rates from regime defaults
+  liveTaxRates = {};
+  if (!reg.unified && reg.taxes) {
+    reg.taxes.forEach(t => { liveTaxRates[t.id] = t.rate; });
+  }
+
+  if (reg.unified) {
+    if (reg.editable) {
+      // Manual mode — show a single editable rate
+      breakdown.innerHTML = `
+        <div class="slider-row" style="margin-bottom:0">
+          <label style="min-width:90px">Alíquota total</label>
+          <input type="range" id="manualTaxRange" min="0" max="40"
+            value="${reg.effective}"
+            oninput="document.getElementById('manualTaxInput').value=this.value;calculate()" />
+          <input type="number" id="manualTaxInput" value="${reg.effective}" min="0" max="100"
+            style="width:60px;text-align:right"
+            oninput="document.getElementById('manualTaxRange').value=this.value;calculate()" />
+          <span style="color:var(--muted);margin-left:2px">%</span>
+        </div>`;
+    } else if (reg.fixed) {
+      breakdown.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;padding:4px 6px;">
+          <span>DAS-MEI (fixo)</span>
+          <span style="color:var(--text);font-weight:500">R$ ${reg.monthly.toFixed(2)}/mês</span>
+        </div>`;
+    } else {
+      breakdown.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;padding:4px 6px;">
+          <span>DAS unificado</span>
+          <span style="color:var(--text);font-weight:500">${reg.effective}%</span>
+        </div>`;
+    }
+  } else {
+    // Detailed breakdown table
+    let rows = reg.taxes.map(t => `
+      <tr>
+        <td>
+          ${t.name}
+          ${t.editable ? '<span class="tag-edit">ajustável</span>' : ''}
+          <div style="font-size:0.72rem;color:var(--muted)">${t.note}</div>
+        </td>
+        <td style="text-align:right;white-space:nowrap">
+          ${t.editable
+            ? `<input type="number" id="tax_${t.id}" value="${t.rate}" min="0" max="30" step="0.01"
+                style="width:68px;text-align:right"
+                oninput="liveTaxRates['${t.id}']=+this.value;calculate()" /><span style="color:var(--muted);margin-left:3px">%</span>`
+            : `<strong>${t.rate.toFixed(2)}%</strong>`
+          }
+        </td>
+      </tr>`).join('');
+
+    breakdown.innerHTML = `
+      <table class="tax-table">
+        <thead><tr><th>Imposto</th><th style="text-align:right">Alíquota</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  note.textContent = reg.note;
+  calculate();
+}
+
+function getTaxInfo() {
+  const key = document.getElementById('taxRegime').value;
+  const reg = TAX_REGIMES[key];
+  const dur = Math.max(1, +document.getElementById('duration').value || 1);
+
+  if (reg.fixed) {
+    return { totalRate: 0, fixedAmt: reg.monthly * dur, breakdown: [{ name: 'DAS-MEI', rate: 0, amt: reg.monthly * dur }] };
+  }
+
+  if (reg.unified) {
+    let rate;
+    if (reg.editable) {
+      rate = (+document.getElementById('manualTaxInput')?.value ?? reg.effective) / 100;
+    } else {
+      rate = (reg.effective ?? 0) / 100;
+    }
+    return { totalRate: rate, fixedAmt: 0, breakdown: [{ name: reg.label, rate: rate * 100, amt: null }] };
+  }
+
+  // Detailed
+  const breakdown = reg.taxes.map(t => {
+    const r = (liveTaxRates[t.id] ?? t.rate) / 100;
+    return { name: t.name, rate: r * 100, amt: null };
+  });
+  const totalRate = breakdown.reduce((s, b) => s + b.rate, 0) / 100;
+  return { totalRate, fixedAmt: 0, breakdown };
+}
+
 // ─── Calculation ─────────────────────────────────────────────────────────────
 function calculate() {
   const dur = Math.max(1, +document.getElementById('duration').value || 1);
   const marginPct = +document.getElementById('margin').value / 100;
   const riskPct   = +document.getElementById('risk').value   / 100;
-  const taxPct    = +document.getElementById('tax').value    / 100;
   const cur = document.getElementById('currency').value;
   const sym = CURRENCIES[cur];
 
@@ -717,23 +945,66 @@ function calculate() {
   const toolsCost = tools.reduce((s, r) => s + r.value * dur, 0);
   const direct = teamCost + infraCost + toolsCost;
 
-  const riskAmt   = direct * riskPct;
-  const base      = direct + riskAmt;
-  const taxAmt    = base * taxPct;
-  const marginAmt = (base + taxAmt) * marginPct;
-  const total     = base + taxAmt + marginAmt;
+  const riskAmt = direct * riskPct;
+  const costBase = direct + riskAmt; // custo + risco (base para formar o preço)
 
+  // Impostos incidem sobre a receita (preço de venda), não sobre o custo.
+  // Fórmula: receita = costBase / (1 - taxRate - marginRate)
+  const taxInfo = getTaxInfo();
+  let revenue, taxAmt, marginAmt;
+
+  if (taxInfo.fixedAmt > 0) {
+    // MEI: imposto fixo — margem sobre (custo + risco + fixedTax)
+    taxAmt = taxInfo.fixedAmt;
+    revenue = (costBase + taxAmt) / (1 - marginPct);
+    marginAmt = revenue * marginPct;
+  } else {
+    const denom = 1 - taxInfo.totalRate - marginPct;
+    if (denom <= 0) {
+      // Impossível precificar — tax + margin >= 100%
+      revenue = costBase;
+      taxAmt = 0; marginAmt = 0;
+    } else {
+      revenue = costBase / denom;
+      taxAmt = revenue * taxInfo.totalRate;
+      marginAmt = revenue * marginPct;
+    }
+  }
+
+  const total = revenue;
   const fmt = v => sym + ' ' + Math.round(v).toLocaleString('pt-BR');
 
-  document.getElementById('s_team').textContent   = fmt(teamCost);
-  document.getElementById('s_infra').textContent  = fmt(infraCost);
-  document.getElementById('s_tools').textContent  = fmt(toolsCost);
-  document.getElementById('s_direct').textContent = fmt(direct);
-  document.getElementById('s_risk').textContent   = fmt(riskAmt);
-  document.getElementById('s_tax').textContent    = fmt(taxAmt);
-  document.getElementById('s_margin').textContent = fmt(marginAmt);
-  document.getElementById('s_total').textContent  = fmt(total);
+  document.getElementById('s_team').textContent    = fmt(teamCost);
+  document.getElementById('s_infra').textContent   = fmt(infraCost);
+  document.getElementById('s_tools').textContent   = fmt(toolsCost);
+  document.getElementById('s_direct').textContent  = fmt(direct);
+  document.getElementById('s_risk').textContent    = fmt(riskAmt);
+  document.getElementById('s_tax').textContent     = fmt(taxAmt);
+  document.getElementById('s_margin').textContent  = fmt(marginAmt);
+  document.getElementById('s_total').textContent   = fmt(total);
   document.getElementById('s_permonth').textContent = fmt(total / dur) + '/mês';
+
+  // Regime label on summary
+  const regKey = document.getElementById('taxRegime').value;
+  document.getElementById('s_tax_regime').textContent = TAX_REGIMES[regKey].label;
+
+  // Tax breakdown in summary
+  const bkDiv = document.getElementById('s_tax_breakdown');
+  if (taxInfo.breakdown.length > 1) {
+    bkDiv.innerHTML = taxInfo.breakdown.map(b => {
+      const amt = total * (b.rate / 100);
+      return `<div class="summary-line" style="font-size:0.78rem;padding:4px 0">
+        <span style="color:var(--muted)">${b.name} (${b.rate.toFixed(2)}%)</span>
+        <span style="color:var(--muted)">${fmt(amt)}</span>
+      </div>`;
+    }).join('');
+  } else {
+    bkDiv.innerHTML = '';
+  }
+
+  // Effective rate indicator
+  const effRate = total > 0 ? ((taxAmt / total) * 100).toFixed(1) : '0.0';
+  document.getElementById('taxEffectiveRate').textContent = effRate + '%';
 
   // Complexity badge
   const badge = document.getElementById('complexityBadge');
@@ -744,31 +1015,41 @@ function calculate() {
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 function exportPDF() {
-  const name   = document.getElementById('projectName').value || 'Projeto';
-  const type   = document.getElementById('projectType').options[document.getElementById('projectType').selectedIndex].text;
-  const dur    = document.getElementById('duration').value;
-  const total  = document.getElementById('s_total').textContent;
-  const pm     = document.getElementById('s_permonth').textContent;
+  const name  = document.getElementById('projectName').value || 'Projeto';
+  const type  = document.getElementById('projectType').options[document.getElementById('projectType').selectedIndex].text;
+  const dur   = document.getElementById('duration').value;
+  const total = document.getElementById('s_total').textContent;
+  const pm    = document.getElementById('s_permonth').textContent;
+  const regime = TAX_REGIMES[document.getElementById('taxRegime').value].label;
+  const taxInfo = getTaxInfo();
+
+  const taxLines = taxInfo.breakdown.length > 1
+    ? taxInfo.breakdown.map(b => `    ${b.name.padEnd(20)} ${b.rate.toFixed(2)}%`)
+    : [`    Alíquota total:       ${(taxInfo.totalRate * 100).toFixed(2)}%`];
 
   const lines = [
     `ORÇAMENTO DE PROJETO TECH`,
-    `═══════════════════════════════════`,
-    `Projeto: ${name}`,
-    `Tipo: ${type}`,
-    `Duração: ${dur} meses`,
+    `═══════════════════════════════════════`,
+    `Projeto:  ${name}`,
+    `Tipo:     ${type}`,
+    `Duração:  ${dur} meses`,
     ``,
     `RESUMO FINANCEIRO`,
-    `───────────────────────────────────`,
-    `Custo de pessoal:  ${document.getElementById('s_team').textContent}`,
-    `Infraestrutura:    ${document.getElementById('s_infra').textContent}`,
-    `Ferramentas:       ${document.getElementById('s_tools').textContent}`,
-    `Custo direto:      ${document.getElementById('s_direct').textContent}`,
-    `Reserva de risco:  ${document.getElementById('s_risk').textContent}`,
-    `Impostos:          ${document.getElementById('s_tax').textContent}`,
-    `Margem de lucro:   ${document.getElementById('s_margin').textContent}`,
-    `───────────────────────────────────`,
-    `TOTAL DO PROJETO:  ${total}`,
-    `Por mês:           ${pm}`,
+    `───────────────────────────────────────`,
+    `Custo de pessoal:      ${document.getElementById('s_team').textContent}`,
+    `Infraestrutura:        ${document.getElementById('s_infra').textContent}`,
+    `Ferramentas:           ${document.getElementById('s_tools').textContent}`,
+    `Custo direto:          ${document.getElementById('s_direct').textContent}`,
+    `Reserva de risco:      ${document.getElementById('s_risk').textContent}`,
+    ``,
+    `IMPOSTOS — ${regime}`,
+    ...taxLines,
+    `  Total impostos:      ${document.getElementById('s_tax').textContent}`,
+    ``,
+    `Margem de lucro:       ${document.getElementById('s_margin').textContent}`,
+    `───────────────────────────────────────`,
+    `TOTAL DO PROJETO:      ${total}`,
+    `Por mês:               ${pm}`,
     ``,
     `Gerado em: ${new Date().toLocaleDateString('pt-BR')}`,
   ];
@@ -782,6 +1063,7 @@ function exportPDF() {
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 updateDefaults();
+onRegimeChange();
 </script>
 </body>
 </html>
