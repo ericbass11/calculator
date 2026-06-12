@@ -548,6 +548,31 @@
       <button class="btn-add" onclick="addTeamRow()">+ Adicionar papel</button>
     </div>
 
+    <!-- Mensalidade recorrente -->
+    <div class="card">
+      <h2><span class="icon">&#128260;</span> Mensalidade Recorrente</h2>
+      <label style="display:flex;align-items:center;gap:10px;margin-bottom:16px;cursor:pointer;font-size:0.85rem;color:var(--text)">
+        <input type="checkbox" id="temMensalidade" onchange="toggleMensalidade();calculate()"
+          style="width:16px;height:16px;accent-color:var(--accent2);cursor:pointer" />
+        Projeto tem mensalidade pós-entrega
+      </label>
+      <div id="mensalidadeItens" style="display:none">
+        <div class="form-row">
+          <div>
+            <label>Valor bruto (R$/mês)</label>
+            <input type="number" id="mensalidadeValor" value="1500" min="0" oninput="calculate()" />
+          </div>
+          <div>
+            <label>Início (mês após entrega)</label>
+            <input type="number" id="mensalidadeInicio" value="1" min="0" oninput="calculate()" />
+          </div>
+        </div>
+        <p style="font-size:0.78rem;color:var(--muted);margin-top:4px">
+          Usa o mesmo regime tributário selecionado abaixo. Divisão entre sócios igual à do projeto.
+        </p>
+      </div>
+    </div>
+
     <!-- Infrastructure -->
     <div class="card">
       <h2><span class="icon">&#9729;</span> Infraestrutura / Cloud (mensal)</h2>
@@ -567,16 +592,6 @@
       <h2><span class="icon">&#128230;</span> Ferramentas & Licenças (mensal)</h2>
       <div class="extras-grid" id="toolsGrid"></div>
       <button class="btn-add" onclick="addToolRow()">+ Adicionar ferramenta</button>
-    </div>
-
-    <!-- Margins -->
-    <div class="card">
-      <h2><span class="icon">&#127919;</span> Margem</h2>
-      <div class="slider-row">
-        <label>Margem de lucro</label>
-        <input type="range" id="margin" min="0" max="80" value="20" oninput="syncSlider('margin','marginVal');calculate()" />
-        <span class="slider-val" id="marginVal">20%</span>
-      </div>
     </div>
 
     <!-- Tax Regime -->
@@ -605,30 +620,13 @@
       </div>
     </div>
 
-    <!-- Mensalidade recorrente -->
+    <!-- Margins -->
     <div class="card">
-      <h2><span class="icon">&#128260;</span> Mensalidade Recorrente</h2>
-      <label style="display:flex;align-items:center;gap:10px;margin-bottom:16px;cursor:pointer;font-size:0.85rem;color:var(--text)">
-        <input type="checkbox" id="temMensalidade" onchange="toggleMensalidade();calculate()"
-          style="width:16px;height:16px;accent-color:var(--accent2);cursor:pointer" />
-        Projeto tem mensalidade pós-entrega
-      </label>
-      <div id="mensalidadeItens" style="display:none">
-        <div class="form-row">
-          <div>
-            <label>Valor bruto (R$/mês)</label>
-            <input type="number" id="mensalidadeValor" value="1500" min="0"
-              oninput="calculate()" />
-          </div>
-          <div>
-            <label>Início (mês após entrega)</label>
-            <input type="number" id="mensalidadeInicio" value="1" min="0"
-              oninput="calculate()" />
-          </div>
-        </div>
-        <p style="font-size:0.78rem;color:var(--muted);margin-top:4px">
-          Usa o mesmo regime tributário selecionado acima. Divisão entre sócios igual à do projeto.
-        </p>
+      <h2><span class="icon">&#127919;</span> Margem</h2>
+      <div class="slider-row">
+        <label>Margem de lucro</label>
+        <input type="range" id="margin" min="0" max="80" value="20" oninput="syncSlider('margin','marginVal');calculate()" />
+        <span class="slider-val" id="marginVal">20%</span>
       </div>
     </div>
 
@@ -638,7 +636,6 @@
       <p style="font-size:0.8rem;color:var(--muted);margin-bottom:16px">
         Divide a margem de lucro entre você e o parceiro comercial.
       </p>
-
       <div style="margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <label style="margin:0;font-size:0.85rem">&#128187; Dev (você)</label>
@@ -653,7 +650,6 @@
           oninput="document.getElementById('devPct').value=this.value;clampPartners('dev');calculate()"
           style="width:100%;accent-color:var(--accent)" />
       </div>
-
       <div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <label style="margin:0;font-size:0.85rem">&#129309; Parceiro Comercial</label>
@@ -668,7 +664,6 @@
           oninput="document.getElementById('partnerPct').value=this.value;clampPartners('partner');calculate()"
           style="width:100%;accent-color:var(--accent2)" />
       </div>
-
       <div style="display:flex;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:0.78rem;color:var(--muted)">
         <span>Total das % <span id="partnerSumWarn" style="color:var(--danger);display:none">&#9888; soma ≠ 100%</span></span>
         <span id="partnerSum" style="font-weight:600;color:var(--text)">100%</span>
@@ -1274,54 +1269,112 @@ function calculate() {
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 function exportPDF() {
-  const name  = document.getElementById('projectName').value || 'Projeto';
-  const type  = document.getElementById('projectType').options[document.getElementById('projectType').selectedIndex].text;
-  const dur   = document.getElementById('duration').value;
-  const total = document.getElementById('s_total').textContent;
-  const pm    = document.getElementById('s_permonth').textContent;
-  const regime = TAX_REGIMES[document.getElementById('taxRegime').value].label;
+  const name    = document.getElementById('projectName').value || 'Projeto';
+  const typeEl  = document.getElementById('projectType');
+  const type    = typeEl.options[typeEl.selectedIndex].text;
+  const dur     = +document.getElementById('duration').value || 1;
+  const regime  = TAX_REGIMES[document.getElementById('taxRegime').value].label;
   const taxInfo = getTaxInfo();
+  const cur     = CURRENCIES[document.getElementById('currency').value] || 'R$';
+  const fmt     = v => cur + ' ' + Math.round(v).toLocaleString('pt-BR');
 
+  const clienteInfra = document.getElementById('clientePagaInfra').checked;
+  const temMens      = document.getElementById('temMensalidade').checked;
+  const devPct       = +document.getElementById('devPct').value     || 50;
+  const partnerPct   = +document.getElementById('partnerPct').value || 50;
+
+  // Tax lines
   const taxLines = taxInfo.breakdown.length > 1
-    ? taxInfo.breakdown.map(b => `    ${b.name.padEnd(20)} ${b.rate.toFixed(2)}%`)
-    : [`    Alíquota total:       ${(taxInfo.totalRate * 100).toFixed(2)}%`];
+    ? taxInfo.breakdown.map(b => `    ${b.name.padEnd(22)} ${b.rate.toFixed(2)}%`)
+    : [`    Alíquota total:         ${(taxInfo.totalRate * 100).toFixed(2)}%`];
+
+  // Team lines
+  const teamLines = team.map(r =>
+    `    ${r.role.padEnd(22)} ${r.qty}x · ${r.hours}h/mês · ${cur} ${r.rate}/h = ${fmt(r.qty * r.hours * r.rate * dur)}`
+  );
+
+  // Infra lines
+  const infraLines = infra.map(i =>
+    `    ${i.name.padEnd(22)} ${fmt(i.value)}/mês${clienteInfra ? ' — PAGO PELO CLIENTE' : ''}`
+  );
+  const infraTotal = infra.reduce((s, i) => s + i.value, 0);
+
+  // Tools lines
+  const toolLines = tools.map(t =>
+    `    ${t.name.padEnd(22)} ${fmt(t.value)}/mês — PAGO PELO DEV`
+  );
+
+  // MRR
+  const mrrLines = temMens ? (() => {
+    const bruto   = +document.getElementById('mensalidadeValor').value || 0;
+    const liquido = document.getElementById('s_mrr').textContent;
+    const devMrr  = bruto * (1 - taxInfo.totalRate) * devPct / 100;
+    const parMrr  = bruto * (1 - taxInfo.totalRate) * partnerPct / 100;
+    const inicio  = document.getElementById('mensalidadeInicio').value;
+    return [
+      ``,
+      `MENSALIDADE RECORRENTE (pós-entrega)`,
+      `───────────────────────────────────────`,
+      `  Responsável pelo pagamento: CLIENTE`,
+      `  Início:                   a partir do mês ${inicio} após entrega`,
+      `  Valor bruto/mês:          ${fmt(bruto)}`,
+      `  Regime tributário:        ${regime}`,
+      `  Impostos s/ mensalidade:  ${(taxInfo.totalRate * 100).toFixed(1)}%`,
+      `  Valor líquido/mês:        ${liquido}`,
+      ``,
+      `  Divisão do líquido:`,
+      `    Dev (${devPct}%):           ${fmt(devMrr)}/mês`,
+      `    Parceiro (${partnerPct}%):      ${fmt(parMrr)}/mês`,
+    ];
+  })() : [];
 
   const lines = [
     `ORÇAMENTO DE PROJETO TECH`,
     `═══════════════════════════════════════`,
-    `Projeto:  ${name}`,
-    `Tipo:     ${type}`,
-    `Duração:  ${dur} meses`,
-    ``,
-    `RESUMO FINANCEIRO`,
-    `───────────────────────────────────────`,
-    `Custo de dev:      ${document.getElementById('s_team').textContent}`,
-    `Infraestrutura:        ${document.getElementById('s_infra').textContent}`,
-    `Ferramentas:           ${document.getElementById('s_tools').textContent}`,
-    `Custo direto:          ${document.getElementById('s_direct').textContent}`,
-    ``,
-    `IMPOSTOS — ${regime}`,
-    ...taxLines,
-    `  Total impostos:      ${document.getElementById('s_tax').textContent}`,
-    ``,
-    `Margem de lucro:       ${document.getElementById('s_margin').textContent}`,
-    `  Dev (${document.getElementById('s_dev_pct').textContent}%):          ${document.getElementById('s_dev_share').textContent}`,
-    `  Parceiro (${document.getElementById('s_partner_pct').textContent}%):      ${document.getElementById('s_partner_share').textContent}`,
-    document.getElementById('clientePagaInfra').checked
-      ? `Infraestrutura:        paga pelo cliente`
-      : ``,
-    `───────────────────────────────────────`,
-    `TOTAL DO PROJETO:      ${total}`,
-    `Por mês (projeto):     ${pm}`,
-    ``,
-    ...(document.getElementById('temMensalidade').checked ? [
-      `MENSALIDADE RECORRENTE`,
-      `  Bruto:               ${document.getElementById('mensalidadeValor').value} /mês`,
-      `  Líquido (c/ impostos): ${document.getElementById('s_mrr').textContent}`,
-      `  ${document.getElementById('s_mrr_split').textContent}`,
-      ``,
-    ] : []),
+    `Projeto:   ${name}`,
+    `Tipo:      ${type}`,
+    `Duração:   ${dur} meses`,
+    `Regime:    ${regime}`,
     `Gerado em: ${new Date().toLocaleDateString('pt-BR')}`,
+    ``,
+    `━━━ CUSTOS DO PROJETO (pagos pelo dev) ━━━`,
+    ``,
+    `DEV / EQUIPE`,
+    ...teamLines,
+    `  Subtotal dev:             ${document.getElementById('s_team').textContent}`,
+    ``,
+    `FERRAMENTAS & LICENÇAS (dev paga)`,
+    ...toolLines,
+    `  Subtotal ferramentas:     ${document.getElementById('s_tools').textContent}`,
+    ``,
+    ...(clienteInfra ? [
+      `INFRAESTRUTURA (cliente paga diretamente)`,
+      ...infraLines,
+      `  Total infra mensal:       ${fmt(infraTotal)}/mês`,
+      `  * Esses valores NÃO entram no custo do projeto`,
+      ``,
+    ] : [
+      `INFRAESTRUTURA (dev paga)`,
+      ...infraLines,
+      `  Subtotal infra:           ${document.getElementById('s_infra').textContent}`,
+      ``,
+    ]),
+    `CUSTO DIRETO TOTAL:        ${document.getElementById('s_direct').textContent}`,
+    ``,
+    `━━━ IMPOSTOS (sobre receita) ━━━`,
+    `  Regime: ${regime}`,
+    ...taxLines,
+    `  Total impostos:           ${document.getElementById('s_tax').textContent}`,
+    ``,
+    `━━━ MARGEM & DIVISÃO ━━━`,
+    `  Margem de lucro:          ${document.getElementById('s_margin').textContent}`,
+    `    Dev (${devPct}%):             ${document.getElementById('s_dev_share').textContent}`,
+    `    Parceiro (${partnerPct}%):        ${document.getElementById('s_partner_share').textContent}`,
+    ``,
+    `───────────────────────────────────────`,
+    `TOTAL DO PROJETO:          ${document.getElementById('s_total').textContent}`,
+    `Custo mensal (durante):    ${document.getElementById('s_permonth').textContent}`,
+    ...mrrLines,
   ];
 
   const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
