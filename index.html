@@ -310,6 +310,83 @@
     }
     .phase-item .name { font-size: 0.875rem; font-weight: 500; }
     .phase-item .pct { font-size: 0.78rem; color: var(--muted); }
+
+    /* ── Mobile fixes ──────────────────────────────────────────── */
+
+    /* Prevent iOS auto-zoom on inputs (requires font-size >= 16px) */
+    @media (max-width: 768px) {
+      input[type="text"],
+      input[type="number"],
+      select { font-size: 16px; }
+
+      body { padding: 16px 12px; }
+
+      header { margin-bottom: 24px; }
+      header h1 { font-size: 1.4rem; }
+      header p { font-size: 0.85rem; }
+
+      .card { padding: 16px; }
+
+      /* Summary not sticky on mobile — it appears below naturally */
+      .summary-card { position: static; }
+
+      /* Larger touch targets for remove buttons */
+      .btn-remove { padding: 8px 12px; font-size: 1.1rem; }
+      .btn-add { padding: 10px 16px; width: 100%; justify-content: center; }
+
+      /* Sliders: stack label above instead of inline */
+      .slider-row { flex-wrap: wrap; gap: 8px; }
+      .slider-row label { min-width: unset; width: 100%; margin-bottom: 0; }
+      input[type="range"] { min-width: 0; }
+
+      /* Team table → card layout on mobile */
+      .team-table thead { display: none; }
+      .team-table tbody tr {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .team-table tbody tr:last-child { border-bottom: none; }
+      /* remove the row-level border set via td */
+      .team-table tr:not(:last-child) td { border-bottom: none; padding-bottom: 0; }
+
+      .team-table td {
+        display: block;
+        padding: 0;
+        border: none;
+      }
+      /* Role spans full width */
+      .team-table td:nth-child(1) { grid-column: 1 / -1; }
+      /* Remove button aligns right, full width */
+      .team-table td:nth-child(5) { grid-column: 1 / -1; text-align: right; }
+
+      .team-table td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 0.7rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 4px;
+      }
+      .team-table input[type="text"],
+      .team-table input[type="number"] { min-width: unset; width: 100%; }
+
+      /* Tax table: stack rate below name */
+      .tax-table thead { display: none; }
+      .tax-table tr { display: block; padding: 10px 0; border-bottom: 1px solid var(--border); }
+      .tax-table tr:last-child { border-bottom: none; }
+      .tax-table td { display: block; padding: 2px 0; border: none; }
+      .tax-table input[type="number"] { width: 100%; text-align: left; }
+
+      /* Extras grid already goes 1 col at 500px — ensure on mobile too */
+      .extras-grid { grid-template-columns: 1fr; }
+
+      /* Total amount slightly smaller */
+      .total-block .amount { font-size: 1.6rem; }
+    }
   </style>
 </head>
 <body>
@@ -749,11 +826,11 @@ function renderTeam() {
   team.forEach((row, i) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input type="text" value="${row.role}" oninput="team[${i}].role=this.value" /></td>
-      <td><input type="number" value="${row.qty}" min="1" oninput="team[${i}].qty=+this.value;calculate()" style="width:52px"/></td>
-      <td><input type="number" value="${row.hours}" min="0" oninput="team[${i}].hours=+this.value;calculate()" style="width:72px"/></td>
-      <td><input type="number" value="${row.rate}" min="0" oninput="team[${i}].rate=+this.value;calculate()" style="width:80px"/></td>
-      <td><button class="btn-remove" onclick="removeTeam(${i})">&#10005;</button></td>
+      <td data-label="Papel"><input type="text" value="${row.role}" oninput="team[${i}].role=this.value" /></td>
+      <td data-label="Qtd"><input type="number" value="${row.qty}" min="1" oninput="team[${i}].qty=+this.value;calculate()" style="width:52px"/></td>
+      <td data-label="Horas/mês"><input type="number" value="${row.hours}" min="0" oninput="team[${i}].hours=+this.value;calculate()" style="width:72px"/></td>
+      <td data-label="Valor/hora"><input type="number" value="${row.rate}" min="0" oninput="team[${i}].rate=+this.value;calculate()" style="width:80px"/></td>
+      <td><button class="btn-remove" onclick="removeTeam(${i})">&#10005; remover</button></td>
     `;
     tbody.appendChild(tr);
   });
