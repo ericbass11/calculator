@@ -312,6 +312,201 @@
     .phase-item .name { font-size: 0.875rem; font-weight: 500; }
     .phase-item .pct { font-size: 0.78rem; color: var(--muted); }
 
+    /* ── Proposal modal ────────────────────────────────────────── */
+    .proposal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 1000;
+      overflow-y: auto;
+      padding: 32px 16px;
+    }
+    .proposal-overlay.open { display: flex; justify-content: center; align-items: flex-start; }
+
+    .proposal-page {
+      background: #fff;
+      color: #1a1a2e;
+      width: 100%;
+      max-width: 780px;
+      border-radius: 4px;
+      padding: 56px 64px;
+      font-family: 'Segoe UI', Georgia, serif;
+      position: relative;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    }
+    @media (max-width: 600px) { .proposal-page { padding: 32px 24px; } }
+
+    .proposal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-bottom: 24px;
+    }
+    .proposal-btn {
+      padding: 9px 20px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+    }
+    .proposal-btn-print {
+      background: #6c63ff;
+      color: #fff;
+    }
+    .proposal-btn-close {
+      background: #f0f0f5;
+      color: #444;
+    }
+
+    /* Proposal content styles */
+    .prop-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 36px;
+      padding-bottom: 24px;
+      border-bottom: 3px solid #6c63ff;
+    }
+    .prop-logo-area h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #6c63ff;
+      margin-bottom: 2px;
+    }
+    .prop-logo-area p { font-size: 0.8rem; color: #888; }
+    .prop-meta { text-align: right; font-size: 0.8rem; color: #666; line-height: 1.8; }
+    .prop-meta strong { color: #1a1a2e; }
+
+    .prop-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #6c63ff;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 28px 0 6px;
+    }
+    .prop-divider {
+      height: 1px;
+      background: #e8e8f0;
+      margin: 16px 0;
+    }
+
+    .prop-project-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 500px) { .prop-project-info { grid-template-columns: 1fr; } }
+
+    .prop-info-box {
+      background: #f7f7fc;
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .prop-info-box .key { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .prop-info-box .val { font-size: 1rem; font-weight: 600; color: #1a1a2e; }
+
+    .prop-investment-box {
+      background: linear-gradient(135deg, #6c63ff15, #00d4aa10);
+      border: 2px solid #6c63ff;
+      border-radius: 10px;
+      padding: 22px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 16px 0 24px;
+    }
+    .prop-investment-box .inv-label { font-size: 0.85rem; color: #555; }
+    .prop-investment-box .inv-value { font-size: 1.8rem; font-weight: 800; color: #6c63ff; }
+
+    .prop-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin: 10px 0 20px;
+    }
+    .prop-table th {
+      text-align: left;
+      background: #f0f0f8;
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #666;
+    }
+    .prop-table td { padding: 9px 12px; border-bottom: 1px solid #eee; color: #333; }
+    .prop-table tr:last-child td { border-bottom: none; }
+    .prop-table .td-right { text-align: right; font-weight: 600; }
+
+    .prop-mrr-box {
+      background: #f0fdf8;
+      border: 2px solid #00d4aa;
+      border-radius: 10px;
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 16px 0 24px;
+    }
+    .prop-mrr-box .mrr-label { font-size: 0.85rem; color: #555; }
+    .prop-mrr-box .mrr-sub { font-size: 0.75rem; color: #888; margin-top: 2px; }
+    .prop-mrr-box .mrr-value { font-size: 1.5rem; font-weight: 800; color: #00a884; }
+
+    .prop-phases { list-style: none; margin: 10px 0; }
+    .prop-phase-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 0.875rem;
+    }
+    .prop-phase-item:last-child { border-bottom: none; }
+    .prop-phase-num {
+      width: 26px; height: 26px;
+      background: #6c63ff;
+      color: #fff;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .prop-phase-name { flex: 1; color: #333; font-weight: 500; }
+    .prop-phase-pct { color: #888; font-size: 0.8rem; }
+
+    .prop-footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0ee;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      font-size: 0.78rem;
+      color: #888;
+    }
+    .prop-validity { line-height: 1.6; }
+    .prop-sign { text-align: right; }
+    .prop-sign-line {
+      width: 180px;
+      border-bottom: 1px solid #aaa;
+      margin-bottom: 6px;
+      height: 32px;
+    }
+
+    /* Print rules */
+    @media print {
+      body > * { display: none !important; }
+      .proposal-overlay { display: block !important; position: static !important;
+        background: none !important; padding: 0 !important; overflow: visible !important; }
+      .proposal-actions { display: none !important; }
+      .proposal-page { box-shadow: none !important; max-width: 100% !important;
+        border-radius: 0 !important; padding: 20mm 18mm !important; }
+      @page { margin: 0; size: A4; }
+    }
+
     /* ── History panel ─────────────────────────────────────────── */
     .history-panel {
       background: var(--surface);
@@ -733,8 +928,10 @@
         Complexidade: <span id="complexityBadge" class="badge badge-low">Baixa</span>
       </div>
 
+      <button class="btn-export" style="background:linear-gradient(135deg,#6c63ff,#00d4aa);margin-bottom:8px"
+        onclick="gerarProposta()">&#128203; Gerar Proposta para Cliente</button>
       <button class="btn-save" onclick="saveOrcamento()">&#128190; Salvar Orçamento</button>
-      <button class="btn-export" onclick="exportPDF()">&#128196; Exportar Resumo</button>
+      <button class="btn-export" onclick="exportPDF()">&#128196; Exportar Resumo Interno</button>
       <div class="db-status" id="dbStatus">Carregando banco de dados...</div>
     </div>
 
@@ -1384,6 +1581,144 @@ function exportPDF() {
   a.click();
 }
 
+// ─── Proposal ────────────────────────────────────────────────────────────────
+function gerarProposta() {
+  const name     = document.getElementById('projectName').value || 'Projeto';
+  const typeEl   = document.getElementById('projectType');
+  const type     = typeEl.options[typeEl.selectedIndex].text;
+  const dur      = +document.getElementById('duration').value || 1;
+  const cur      = CURRENCIES[document.getElementById('currency').value] || 'R$';
+  const fmt      = v => cur + ' ' + Math.round(v).toLocaleString('pt-BR');
+  const today    = new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+  const validity = new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+
+  const clienteInfra = document.getElementById('clientePagaInfra').checked;
+  const temMens      = document.getElementById('temMensalidade').checked;
+  const total        = document.getElementById('s_total').textContent;
+
+  // Infra section (only shown if client pays)
+  const infraSection = clienteInfra && infra.length ? `
+    <p class="prop-title">Infraestrutura (responsabilidade do cliente)</p>
+    <div class="prop-divider"></div>
+    <table class="prop-table">
+      <thead><tr><th>Serviço / Item</th><th style="text-align:right">Custo Mensal</th></tr></thead>
+      <tbody>
+        ${infra.map(i => `
+          <tr>
+            <td>${i.name}</td>
+            <td class="td-right">${fmt(i.value)}<span style="font-weight:400;color:#888">/mês</span></td>
+          </tr>`).join('')}
+        <tr style="font-weight:700;background:#f7f7fc">
+          <td>Total mensal (infra)</td>
+          <td class="td-right">${fmt(infra.reduce((s,i)=>s+i.value,0))}<span style="font-weight:400;color:#888">/mês</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size:0.78rem;color:#888;margin-top:-8px;margin-bottom:24px">
+      * Os valores de infraestrutura serão contratados diretamente pelo cliente.
+    </p>` : '';
+
+  // MRR section
+  const mrrSection = temMens ? (() => {
+    const bruto  = +document.getElementById('mensalidadeValor').value || 0;
+    const inicio = document.getElementById('mensalidadeInicio').value;
+    return `
+    <p class="prop-title">Mensalidade de Manutenção</p>
+    <div class="prop-divider"></div>
+    <div class="prop-mrr-box">
+      <div>
+        <div class="mrr-label">Manutenção mensal contínua</div>
+        <div class="mrr-sub">Inclui suporte, monitoramento e melhorias — a partir do mês ${inicio} após a entrega</div>
+      </div>
+      <div class="mrr-value">${fmt(bruto)}<span style="font-size:0.9rem;font-weight:500;color:#888">/mês</span></div>
+    </div>`;
+  })() : '';
+
+  // Phases
+  const phaseKey = document.getElementById('projectType').value;
+  const phases   = PHASES[phaseKey] || PHASES.custom;
+  const phaseItems = phases.map(([n, pct], i) => `
+    <li class="prop-phase-item">
+      <div class="prop-phase-num">${i+1}</div>
+      <div class="prop-phase-name">${n}</div>
+      <div class="prop-phase-pct">${pct}% do projeto</div>
+    </li>`).join('');
+
+  document.getElementById('proposalContent').innerHTML = `
+    <div class="prop-header">
+      <div class="prop-logo-area">
+        <h1>Proposta Comercial</h1>
+        <p>Desenvolvimento de Software</p>
+      </div>
+      <div class="prop-meta">
+        <div><strong>Data:</strong> ${today}</div>
+        <div><strong>Validade:</strong> 30 dias</div>
+        <div><strong>Tipo:</strong> ${type}</div>
+        <div><strong>Duração:</strong> ${dur} ${dur === 1 ? 'mês' : 'meses'}</div>
+      </div>
+    </div>
+
+    <div class="prop-project-info">
+      <div class="prop-info-box">
+        <div class="key">Projeto</div>
+        <div class="val">${name}</div>
+      </div>
+      <div class="prop-info-box">
+        <div class="key">Prazo de entrega</div>
+        <div class="val">${dur} ${dur === 1 ? 'mês' : 'meses'}</div>
+      </div>
+      <div class="prop-info-box">
+        <div class="key">Tipo de solução</div>
+        <div class="val">${type}</div>
+      </div>
+      <div class="prop-info-box">
+        <div class="key">Modalidade</div>
+        <div class="val">${temMens ? 'Projeto + Manutenção' : 'Projeto único'}</div>
+      </div>
+    </div>
+
+    <p class="prop-title">Investimento</p>
+    <div class="prop-divider"></div>
+    <div class="prop-investment-box">
+      <div>
+        <div class="inv-label">Desenvolvimento completo do projeto</div>
+        <div style="font-size:0.75rem;color:#888;margin-top:4px">Pagamento único — entrega em ${dur} ${dur===1?'mês':'meses'}</div>
+      </div>
+      <div class="inv-value">${total}</div>
+    </div>
+
+    ${infraSection}
+    ${mrrSection}
+
+    <p class="prop-title">Fases do Projeto</p>
+    <div class="prop-divider"></div>
+    <ul class="prop-phases">${phaseItems}</ul>
+
+    <div class="prop-footer">
+      <div class="prop-validity">
+        Esta proposta é válida até <strong>${validity}</strong>.<br>
+        Valores sujeitos a ajuste após o prazo de validade.
+      </div>
+      <div class="prop-sign">
+        <div class="prop-sign-line"></div>
+        <div>Assinatura / Aceite</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('proposalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharProposta() {
+  document.getElementById('proposalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function fecharPropostaOverlay(e) {
+  if (e.target === document.getElementById('proposalOverlay')) fecharProposta();
+}
+
 // ─── SQLite (sql.js) ──────────────────────────────────────────────────────────
 const DB_KEY = 'orcamento_tech_db';
 let sqlDB = null;
@@ -1542,5 +1877,16 @@ updateDefaults();
 onRegimeChange();
 initDB();
 </script>
+<!-- Proposal modal -->
+<div class="proposal-overlay" id="proposalOverlay" onclick="fecharPropostaOverlay(event)">
+  <div class="proposal-page" id="proposalPage">
+    <div class="proposal-actions">
+      <button class="proposal-btn proposal-btn-close" onclick="fecharProposta()">&#10005; Fechar</button>
+      <button class="proposal-btn proposal-btn-print" onclick="window.print()">&#128424; Imprimir / Salvar PDF</button>
+    </div>
+    <div id="proposalContent"></div>
+  </div>
+</div>
+
 </body>
 </html>
