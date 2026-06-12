@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Calculadora de Orçamento Tech</title>
+  <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -311,6 +312,97 @@
     .phase-item .name { font-size: 0.875rem; font-weight: 500; }
     .phase-item .pct { font-size: 0.78rem; color: var(--muted); }
 
+    /* ── History panel ─────────────────────────────────────────── */
+    .history-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 16px;
+    }
+    .history-panel h3 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent2);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .history-empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.82rem;
+      padding: 16px 0;
+    }
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      background: var(--surface2);
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+      border: 1px solid transparent;
+    }
+    .history-item:hover { border-color: var(--accent); }
+    .history-item:last-child { margin-bottom: 0; }
+    .history-item-info { flex: 1; min-width: 0; }
+    .history-item-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .history-item-meta { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+    .history-item-total {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent2);
+      white-space: nowrap;
+    }
+    .history-item-del {
+      background: none;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 4px;
+      opacity: 0.5;
+      font-size: 0.9rem;
+      transition: opacity 0.2s;
+      flex-shrink: 0;
+    }
+    .history-item-del:hover { opacity: 1; }
+    .btn-save {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 11px;
+      background: var(--surface2);
+      color: var(--accent2);
+      border: 1px solid var(--accent2);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-save:hover { background: rgba(0,212,170,0.1); }
+    .db-status {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 10px;
+    }
+    .db-status.ok { color: var(--accent2); }
+    .db-status.err { color: var(--danger); }
+
     /* ── Mobile fixes ──────────────────────────────────────────── */
 
     /* Prevent iOS auto-zoom on inputs (requires font-size >= 16px) */
@@ -564,7 +656,15 @@
         Complexidade: <span id="complexityBadge" class="badge badge-low">Baixa</span>
       </div>
 
+      <button class="btn-save" onclick="saveOrcamento()">&#128190; Salvar Orçamento</button>
       <button class="btn-export" onclick="exportPDF()">&#128196; Exportar Resumo</button>
+      <div class="db-status" id="dbStatus">Carregando banco de dados...</div>
+    </div>
+
+    <!-- History panel -->
+    <div class="history-panel">
+      <h3>&#128218; Histórico Salvo</h3>
+      <div id="historyList"><div class="history-empty">Nenhum orçamento salvo ainda.</div></div>
     </div>
   </div>
 </div>
@@ -1138,9 +1238,166 @@ function exportPDF() {
   a.click();
 }
 
+// ─── SQLite (sql.js) ──────────────────────────────────────────────────────────
+const DB_KEY = 'orcamento_tech_db';
+let sqlDB = null;
+
+async function initDB() {
+  const status = document.getElementById('dbStatus');
+  try {
+    const SQL = await initSqlJs({
+      locateFile: f => `https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${f}`
+    });
+
+    // Try to restore persisted DB from localStorage
+    const saved = localStorage.getItem(DB_KEY);
+    if (saved) {
+      const buf = Uint8Array.from(atob(saved), c => c.charCodeAt(0));
+      sqlDB = new SQL.Database(buf);
+    } else {
+      sqlDB = new SQL.Database();
+    }
+
+    sqlDB.run(`
+      CREATE TABLE IF NOT EXISTS orcamentos (
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome      TEXT    NOT NULL,
+        tipo      TEXT,
+        regime    TEXT,
+        duracao   INTEGER,
+        total     REAL,
+        margem    REAL,
+        risco     REAL,
+        dados     TEXT,
+        criado_em TEXT    DEFAULT (datetime('now','localtime'))
+      )
+    `);
+
+    persistDB();
+    status.textContent = '&#x1F4BE; Banco SQLite ativo';
+    status.className = 'db-status ok';
+    renderHistory();
+  } catch (e) {
+    status.textContent = 'Banco indisponível — usando modo offline';
+    status.className = 'db-status err';
+    console.warn('sql.js:', e);
+  }
+}
+
+function persistDB() {
+  if (!sqlDB) return;
+  const data = sqlDB.export();
+  const b64  = btoa(String.fromCharCode(...data));
+  localStorage.setItem(DB_KEY, b64);
+}
+
+function saveOrcamento() {
+  if (!sqlDB) { alert('Banco ainda não está pronto. Aguarde.'); return; }
+  const name = document.getElementById('projectName').value.trim() || 'Sem nome';
+  const tipo = document.getElementById('projectType').value;
+  const dur  = +document.getElementById('duration').value || 1;
+  const reg  = document.getElementById('taxRegime').value;
+  const total = parseFloat(
+    document.getElementById('s_total').textContent.replace(/[^\d,]/g,'').replace(',','.')
+  ) || 0;
+  const margem = +document.getElementById('margin').value;
+  const risco  = +document.getElementById('risk').value;
+  const dados  = JSON.stringify({ team, infra, tools });
+
+  sqlDB.run(
+    `INSERT INTO orcamentos (nome, tipo, regime, duracao, total, margem, risco, dados)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [name, tipo, reg, dur, total, margem, risco, dados]
+  );
+  persistDB();
+  renderHistory();
+
+  const btn = document.querySelector('.btn-save');
+  const orig = btn.textContent;
+  btn.textContent = '✓ Salvo!';
+  setTimeout(() => { btn.textContent = orig; }, 1500);
+}
+
+function deleteOrcamento(id) {
+  if (!sqlDB) return;
+  sqlDB.run('DELETE FROM orcamentos WHERE id = ?', [id]);
+  persistDB();
+  renderHistory();
+}
+
+function loadOrcamento(id) {
+  if (!sqlDB) return;
+  const rows = sqlDB.exec('SELECT * FROM orcamentos WHERE id = ?', [id]);
+  if (!rows.length) return;
+
+  const cols = rows[0].columns;
+  const row  = rows[0].values[0];
+  const rec  = Object.fromEntries(cols.map((c, i) => [c, row[i]]));
+
+  // Restore form
+  document.getElementById('projectName').value = rec.nome;
+  document.getElementById('projectType').value  = rec.tipo;
+  document.getElementById('duration').value     = rec.duracao;
+  document.getElementById('margin').value       = rec.margem;
+  document.getElementById('risk').value         = rec.risco;
+  document.getElementById('marginVal').textContent = rec.margem + '%';
+  document.getElementById('riskVal').textContent   = rec.risco  + '%';
+
+  const parsed = JSON.parse(rec.dados || '{}');
+  team  = parsed.team  || [];
+  infra = parsed.infra || [];
+  tools = parsed.tools || [];
+
+  renderTeam(); renderInfra(); renderTools(); renderPhases();
+  document.getElementById('taxRegime').value = rec.regime;
+  onRegimeChange();
+
+  // Scroll to top on mobile
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderHistory() {
+  if (!sqlDB) return;
+  const container = document.getElementById('historyList');
+  const rows = sqlDB.exec(
+    'SELECT id, nome, tipo, regime, duracao, total, criado_em FROM orcamentos ORDER BY id DESC'
+  );
+
+  if (!rows.length || !rows[0].values.length) {
+    container.innerHTML = '<div class="history-empty">Nenhum orçamento salvo ainda.</div>';
+    return;
+  }
+
+  const TIPOS = {
+    web:'Web', mobile:'Mobile', api:'API', data:'Dados', ia:'IA/ML',
+    ecommerce:'E-comm', saas:'SaaS', custom:'Outro'
+  };
+  const REGIMES = {
+    simples_1:'SN F1', simples_2:'SN F2', simples_3:'SN F3',
+    simples_4:'SN F4', simples_5:'SN F5', presumido:'L.Presumido',
+    real:'L.Real', mei:'MEI', manual:'Manual', isento:'Isento'
+  };
+
+  container.innerHTML = rows[0].values.map(([id, nome, tipo, regime, dur, total, criado]) => {
+    const cur = CURRENCIES[document.getElementById('currency').value] || 'R$';
+    const totalFmt = cur + ' ' + Math.round(total || 0).toLocaleString('pt-BR');
+    const data = criado ? criado.substring(0, 10) : '';
+    return `
+      <div class="history-item" onclick="loadOrcamento(${id})">
+        <div class="history-item-info">
+          <div class="history-item-name">${nome}</div>
+          <div class="history-item-meta">${TIPOS[tipo]||tipo} · ${REGIMES[regime]||regime} · ${dur}m · ${data}</div>
+        </div>
+        <div class="history-item-total">${totalFmt}</div>
+        <button class="history-item-del" onclick="event.stopPropagation();deleteOrcamento(${id})" title="Excluir">&#10005;</button>
+      </div>`;
+  }).join('');
+}
+
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 updateDefaults();
 onRegimeChange();
+initDB();
 </script>
 </body>
 </html>
