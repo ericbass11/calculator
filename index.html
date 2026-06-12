@@ -425,26 +425,69 @@
       background: #e8e8f4;
     }
 
+    .prop-payment-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
     .prop-investment-box {
       background: #faf9ff;
       border: 1.5px solid #c8c3f8;
       border-radius: 8px;
-      padding: 16px 20px;
+      padding: 14px 16px;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 4px;
+      flex-direction: column;
+      position: relative;
     }
-    .prop-investment-box .inv-label { font-size: 0.85rem; color: #444; font-weight: 500; }
-    .prop-investment-box .inv-sub   { font-size: 0.73rem; color: #999; margin-top: 2px; }
+    .prop-investment-box.featured {
+      background: #f3f1ff;
+      border-color: #6c63ff;
+      border-width: 2px;
+    }
+    .prop-investment-box .inv-badge {
+      display: inline-block;
+      background: #22c55e;
+      color: #fff;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      border-radius: 4px;
+      padding: 2px 6px;
+      margin-bottom: 6px;
+      align-self: flex-start;
+      text-transform: uppercase;
+    }
+    .prop-investment-box .inv-option-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .prop-investment-box .inv-label { font-size: 0.75rem; color: #666; }
+    .prop-investment-box .inv-sub   { font-size: 0.68rem; color: #999; margin-top: 3px; }
+    .prop-investment-box .inv-original {
+      font-size: 0.72rem;
+      color: #aaa;
+      text-decoration: line-through;
+      margin-top: 6px;
+    }
     .prop-investment-box .inv-value {
-      font-size: 1.7rem;
+      font-size: 1.45rem;
       font-weight: 800;
       color: #6c63ff;
       letter-spacing: -0.02em;
-      white-space: nowrap;
-      margin-left: 16px;
+      margin-top: 4px;
     }
+    .prop-investment-box.featured .inv-value { color: #4f46e5; }
+    .prop-investment-box .inv-installments {
+      font-size: 0.7rem;
+      color: #888;
+      margin-top: 4px;
+    }
+    .prop-investment-box .inv-installments strong { color: #555; }
 
     .prop-table {
       width: 100%;
@@ -550,7 +593,7 @@
         font-size: 9pt !important;
       }
       .prop-logo-area h1 { font-size: 16pt !important; }
-      .prop-investment-box .inv-value { font-size: 18pt !important; }
+      .prop-investment-box .inv-value { font-size: 14pt !important; }
       .prop-mrr-box .mrr-value { font-size: 14pt !important; }
       .prop-phase-item, .prop-table td { page-break-inside: avoid; }
       @page { margin: 0; size: A4 portrait; }
@@ -1683,7 +1726,12 @@ function gerarProposta() {
 
   const clienteInfra = document.getElementById('clientePagaInfra').checked;
   const temMens      = document.getElementById('temMensalidade').checked;
-  const total        = document.getElementById('s_total').textContent;
+  const totalNum     = parseFloat(
+    (document.getElementById('s_total').textContent || '0').replace(/[^\d,]/g,'').replace(',','.')
+  ) || 0;
+  const total        = fmt(totalNum);
+  const totalAVista  = fmt(totalNum * 0.9);
+  const totalMetade  = fmt(totalNum * 0.5);
 
   // Infra section (only shown if client pays)
   const infraSection = clienteInfra && infra.length ? `
@@ -1774,12 +1822,22 @@ function gerarProposta() {
       <div class="prop-section-label">Investimento</div>
       <div class="prop-section-line"></div>
     </div>
-    <div class="prop-investment-box">
-      <div>
-        <div class="inv-label">Desenvolvimento completo do projeto</div>
-        <div class="inv-sub">Pagamento único — entrega em ${dur} ${dur===1?'mês':'meses'}</div>
+    <div class="prop-payment-options">
+      <div class="prop-investment-box featured">
+        <span class="inv-badge">10% de desconto</span>
+        <div class="inv-option-title">À Vista</div>
+        <div class="inv-label">Pagamento único no início do projeto</div>
+        <div class="inv-value">${totalAVista}</div>
+        <div class="inv-original">De ${total}</div>
+        <div class="inv-sub">Entrega em ${dur} ${dur===1?'mês':'meses'}</div>
       </div>
-      <div class="inv-value">${total}</div>
+      <div class="prop-investment-box">
+        <div class="inv-option-title">Parcelado 50 / 50</div>
+        <div class="inv-label">50% na assinatura · 50% na entrega</div>
+        <div class="inv-value">${totalMetade} <span style="font-size:0.75rem;font-weight:500;color:#999;">× 2</span></div>
+        <div class="inv-installments"><strong>${totalMetade}</strong> ao assinar + <strong>${totalMetade}</strong> na entrega</div>
+        <div class="inv-sub">Total: ${total} — Entrega em ${dur} ${dur===1?'mês':'meses'}</div>
+      </div>
     </div>
 
     ${infraSection}
