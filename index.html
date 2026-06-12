@@ -564,16 +564,11 @@
 
     <!-- Margins -->
     <div class="card">
-      <h2><span class="icon">&#127919;</span> Margens & Riscos</h2>
+      <h2><span class="icon">&#127919;</span> Margem</h2>
       <div class="slider-row">
         <label>Margem de lucro</label>
         <input type="range" id="margin" min="0" max="80" value="20" oninput="syncSlider('margin','marginVal');calculate()" />
         <span class="slider-val" id="marginVal">20%</span>
-      </div>
-      <div class="slider-row">
-        <label>Reserva de risco</label>
-        <input type="range" id="risk" min="0" max="50" value="10" oninput="syncSlider('risk','riskVal');calculate()" />
-        <span class="slider-val" id="riskVal">10%</span>
       </div>
     </div>
 
@@ -674,10 +669,6 @@
       <div class="summary-line">
         <span>Custo direto total</span>
         <span class="val" id="s_direct">R$ 0</span>
-      </div>
-      <div class="summary-line">
-        <span>Reserva de risco</span>
-        <span class="val" id="s_risk">R$ 0</span>
       </div>
       <div class="summary-line">
         <span>Impostos <span id="s_tax_regime" style="font-size:0.72rem;color:var(--accent);margin-left:4px"></span></span>
@@ -812,140 +803,79 @@ const TAX_REGIMES = {
 let liveTaxRates = {};
 
 // ─── Defaults per project type ────────────────────────────────────────────────
+const DEFAULT_TEAM  = [{ role: 'Dev Full Stack', qty: 1, hours: 160, rate: 80 }];
+const DEFAULT_TOOLS = [{ name: 'Claude Licença Max', value: 500 }];
+
 const DEFAULTS = {
   web: {
-    team: [
-      { role: 'Tech Lead', qty: 1, hours: 160, rate: 120 },
-      { role: 'Dev Frontend', qty: 2, hours: 160, rate: 80 },
-      { role: 'Dev Backend', qty: 1, hours: 160, rate: 90 },
-      { role: 'UX/UI Designer', qty: 1, hours: 80, rate: 70 },
-      { role: 'QA Engineer', qty: 1, hours: 80, rate: 60 },
-    ],
+    team: DEFAULT_TEAM,
     infra: [
       { name: 'Cloud (servidor)', value: 500 },
       { name: 'CDN / DNS', value: 50 },
       { name: 'Banco de dados', value: 150 },
     ],
-    tools: [
-      { name: 'GitHub / GitLab', value: 50 },
-      { name: 'Figma', value: 45 },
-      { name: 'Jira / Linear', value: 60 },
-    ],
+    tools: DEFAULT_TOOLS,
   },
   mobile: {
-    team: [
-      { role: 'Tech Lead Mobile', qty: 1, hours: 160, rate: 130 },
-      { role: 'Dev iOS', qty: 1, hours: 160, rate: 100 },
-      { role: 'Dev Android', qty: 1, hours: 160, rate: 100 },
-      { role: 'UX/UI Designer', qty: 1, hours: 80, rate: 70 },
-      { role: 'QA Mobile', qty: 1, hours: 80, rate: 65 },
-    ],
+    team: DEFAULT_TEAM,
     infra: [
       { name: 'BaaS (Firebase/Supabase)', value: 200 },
       { name: 'Push notifications', value: 30 },
       { name: 'API Gateway', value: 100 },
     ],
-    tools: [
-      { name: 'Apple Developer', value: 10 },
-      { name: 'Google Play', value: 2 },
-      { name: 'TestFlight / TestLab', value: 0 },
-    ],
+    tools: DEFAULT_TOOLS,
   },
   api: {
-    team: [
-      { role: 'Arquiteto de Software', qty: 1, hours: 80, rate: 150 },
-      { role: 'Dev Backend Sênior', qty: 2, hours: 160, rate: 110 },
-      { role: 'Dev Backend Pleno', qty: 1, hours: 160, rate: 80 },
-      { role: 'DevOps', qty: 1, hours: 80, rate: 120 },
-    ],
+    team: DEFAULT_TEAM,
     infra: [
       { name: 'Servidores / containers', value: 400 },
       { name: 'Banco de dados', value: 200 },
       { name: 'Monitoramento (Datadog)', value: 150 },
     ],
-    tools: [
-      { name: 'Postman / Insomnia', value: 0 },
-      { name: 'GitHub Actions (CI/CD)', value: 50 },
-    ],
+    tools: DEFAULT_TOOLS,
   },
   data: {
-    team: [
-      { role: 'Data Engineer', qty: 2, hours: 160, rate: 110 },
-      { role: 'Data Analyst', qty: 1, hours: 160, rate: 85 },
-      { role: 'BI Developer', qty: 1, hours: 160, rate: 80 },
-    ],
+    team: DEFAULT_TEAM,
     infra: [
       { name: 'Data Warehouse (BigQuery)', value: 300 },
       { name: 'Pipelines (Airflow/DBT)', value: 100 },
       { name: 'Storage', value: 80 },
     ],
-    tools: [
-      { name: 'Metabase / Power BI', value: 50 },
-      { name: 'dbt Cloud', value: 100 },
-    ],
+    tools: DEFAULT_TOOLS,
   },
   ia: {
-    team: [
-      { role: 'ML Engineer', qty: 2, hours: 160, rate: 150 },
-      { role: 'Data Scientist', qty: 1, hours: 160, rate: 130 },
-      { role: 'MLOps Engineer', qty: 1, hours: 80, rate: 140 },
-    ],
+    team: DEFAULT_TEAM,
     infra: [
       { name: 'GPU Cloud (treinamento)', value: 2000 },
       { name: 'API de inferência', value: 500 },
       { name: 'Armazenamento de dados', value: 200 },
     ],
-    tools: [
-      { name: 'Weights & Biases', value: 100 },
-      { name: 'Colab Pro / Notebooks', value: 50 },
-    ],
+    tools: DEFAULT_TOOLS,
   },
   ecommerce: {
-    team: [
-      { role: 'Tech Lead', qty: 1, hours: 160, rate: 120 },
-      { role: 'Dev Full Stack', qty: 2, hours: 160, rate: 90 },
-      { role: 'Dev Frontend', qty: 1, hours: 160, rate: 80 },
-      { role: 'UX Designer', qty: 1, hours: 80, rate: 70 },
-    ],
+    team: DEFAULT_TEAM,
     infra: [
       { name: 'Hosting (Vercel/AWS)', value: 300 },
       { name: 'Banco de dados', value: 150 },
       { name: 'Gateway de pagamento', value: 0 },
     ],
-    tools: [
-      { name: 'Shopify / WooCommerce', value: 80 },
-      { name: 'Email marketing', value: 50 },
-    ],
+    tools: DEFAULT_TOOLS,
   },
   saas: {
-    team: [
-      { role: 'CTO / Arquiteto', qty: 1, hours: 100, rate: 200 },
-      { role: 'Dev Backend Sênior', qty: 2, hours: 160, rate: 120 },
-      { role: 'Dev Frontend Sênior', qty: 2, hours: 160, rate: 100 },
-      { role: 'DevOps', qty: 1, hours: 80, rate: 130 },
-      { role: 'UX Designer', qty: 1, hours: 80, rate: 80 },
-    ],
+    team: DEFAULT_TEAM,
     infra: [
       { name: 'Cloud Multi-region', value: 800 },
       { name: 'Observabilidade', value: 200 },
       { name: 'Auth (Auth0)', value: 100 },
     ],
-    tools: [
-      { name: 'Stripe / pagamentos', value: 0 },
-      { name: 'Intercom / suporte', value: 100 },
-      { name: 'Analytics', value: 50 },
-    ],
+    tools: DEFAULT_TOOLS,
   },
   custom: {
-    team: [
-      { role: 'Desenvolvedor', qty: 1, hours: 160, rate: 80 },
-    ],
+    team: DEFAULT_TEAM,
     infra: [
       { name: 'Infraestrutura', value: 100 },
     ],
-    tools: [
-      { name: 'Ferramentas', value: 50 },
-    ],
+    tools: DEFAULT_TOOLS,
   },
 };
 
@@ -1185,17 +1115,14 @@ function getTaxInfo() {
 function calculate() {
   const dur = Math.max(1, +document.getElementById('duration').value || 1);
   const marginPct = +document.getElementById('margin').value / 100;
-  const riskPct   = +document.getElementById('risk').value   / 100;
   const cur = document.getElementById('currency').value;
   const sym = CURRENCIES[cur];
 
   const teamCost  = team.reduce((s, r) => s + r.qty * r.hours * r.rate * dur, 0);
   const infraCost = infra.reduce((s, r) => s + r.value * dur, 0);
   const toolsCost = tools.reduce((s, r) => s + r.value * dur, 0);
-  const direct = teamCost + infraCost + toolsCost;
-
-  const riskAmt = direct * riskPct;
-  const costBase = direct + riskAmt; // custo + risco (base para formar o preço)
+  const direct   = teamCost + infraCost + toolsCost;
+  const costBase = direct;
 
   // Impostos incidem sobre a receita (preço de venda), não sobre o custo.
   // Fórmula: receita = costBase / (1 - taxRate - marginRate)
@@ -1203,7 +1130,7 @@ function calculate() {
   let revenue, taxAmt, marginAmt;
 
   if (taxInfo.fixedAmt > 0) {
-    // MEI: imposto fixo — margem sobre (custo + risco + fixedTax)
+    // MEI: imposto fixo — margem sobre (custo + fixedTax)
     taxAmt = taxInfo.fixedAmt;
     revenue = (costBase + taxAmt) / (1 - marginPct);
     marginAmt = revenue * marginPct;
@@ -1227,7 +1154,6 @@ function calculate() {
   document.getElementById('s_infra').textContent   = fmt(infraCost);
   document.getElementById('s_tools').textContent   = fmt(toolsCost);
   document.getElementById('s_direct').textContent  = fmt(direct);
-  document.getElementById('s_risk').textContent    = fmt(riskAmt);
   document.getElementById('s_tax').textContent     = fmt(taxAmt);
   document.getElementById('s_margin').textContent  = fmt(marginAmt);
   document.getElementById('s_total').textContent   = fmt(total);
@@ -1299,7 +1225,6 @@ function exportPDF() {
     `Infraestrutura:        ${document.getElementById('s_infra').textContent}`,
     `Ferramentas:           ${document.getElementById('s_tools').textContent}`,
     `Custo direto:          ${document.getElementById('s_direct').textContent}`,
-    `Reserva de risco:      ${document.getElementById('s_risk').textContent}`,
     ``,
     `IMPOSTOS — ${regime}`,
     ...taxLines,
@@ -1385,13 +1310,12 @@ function saveOrcamento() {
     document.getElementById('s_total').textContent.replace(/[^\d,]/g,'').replace(',','.')
   ) || 0;
   const margem = +document.getElementById('margin').value;
-  const risco  = +document.getElementById('risk').value;
   const dados  = JSON.stringify({ team, infra, tools });
 
   sqlDB.run(
-    `INSERT INTO orcamentos (nome, tipo, regime, duracao, total, margem, risco, dados)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [name, tipo, reg, dur, total, margem, risco, dados]
+    `INSERT INTO orcamentos (nome, tipo, regime, duracao, total, margem, dados)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [name, tipo, reg, dur, total, margem, dados]
   );
   persistDB();
   renderHistory();
@@ -1423,9 +1347,7 @@ function loadOrcamento(id) {
   document.getElementById('projectType').value  = rec.tipo;
   document.getElementById('duration').value     = rec.duracao;
   document.getElementById('margin').value       = rec.margem;
-  document.getElementById('risk').value         = rec.risco;
   document.getElementById('marginVal').textContent = rec.margem + '%';
-  document.getElementById('riskVal').textContent   = rec.risco  + '%';
 
   const parsed = JSON.parse(rec.dados || '{}');
   team  = parsed.team  || [];
