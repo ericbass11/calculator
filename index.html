@@ -925,44 +925,55 @@
   <!-- RIGHT COLUMN — Summary -->
   <div>
     <div class="summary-card">
-      <h2>&#128200; Resumo do Orçamento</h2>
+      <h2>&#128200; Resumo Interno</h2>
 
+      <!-- Pricing reference (collapsed feel) -->
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:6px">Referência de precificação</div>
       <div class="summary-line">
-        <span>Custo de dev</span>
+        <span>Custo de dev (seu tempo)</span>
         <span class="val" id="s_team">R$ 0</span>
       </div>
       <div class="summary-line">
-        <span>Infraestrutura</span>
-        <span class="val" id="s_infra">R$ 0</span>
+        <span id="s_infra_label">Ferramentas + Infra</span>
+        <span class="val" id="s_opcost">R$ 0</span>
+      </div>
+      <div class="summary-line" style="font-weight:600">
+        <span>Preço ao cliente</span>
+        <span class="val" id="s_total_ref">R$ 0</span>
+      </div>
+
+      <!-- Liquid split -->
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin:14px 0 6px">O que sobra para dividir</div>
+      <div class="summary-line">
+        <span>Preço ao cliente</span>
+        <span class="val" id="s_total2">R$ 0</span>
       </div>
       <div class="summary-line">
-        <span>Ferramentas</span>
-        <span class="val" id="s_tools">R$ 0</span>
+        <span>− Impostos <span id="s_tax_regime" style="font-size:0.7rem;color:var(--accent);margin-left:3px"></span></span>
+        <span class="val" id="s_tax" style="color:var(--danger)">R$ 0</span>
       </div>
+      <div id="s_tax_breakdown" style="padding-left:12px;border-bottom:1px solid var(--border)"></div>
       <div class="summary-line">
-        <span>Custo direto total</span>
-        <span class="val" id="s_direct">R$ 0</span>
+        <span>− Custos operacionais</span>
+        <span class="val" id="s_opcost2" style="color:var(--danger)">R$ 0</span>
       </div>
-      <div class="summary-line">
-        <span>Impostos <span id="s_tax_regime" style="font-size:0.72rem;color:var(--accent);margin-left:4px"></span></span>
-        <span class="val" id="s_tax">R$ 0</span>
-      </div>
-      <div id="s_tax_breakdown" style="padding-left:12px; border-bottom: 1px solid var(--border);"></div>
-      <div class="summary-line">
-        <span>Margem de lucro</span>
-        <span class="val" id="s_margin">R$ 0</span>
-      </div>
-      <div class="summary-line" style="padding-left:12px;font-size:0.78rem">
-        <span style="color:var(--muted)">&#128187; Dev (<span id="s_dev_pct">50</span>%)</span>
-        <span style="color:var(--accent)" id="s_dev_share">R$ 0</span>
-      </div>
-      <div class="summary-line" style="padding-left:12px;font-size:0.78rem">
-        <span style="color:var(--muted)">&#129309; Parceiro (<span id="s_partner_pct">50</span>%)</span>
-        <span style="color:var(--accent2)" id="s_partner_share">R$ 0</span>
+      <div style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.3);border-radius:8px;padding:10px 12px;margin:8px 0">
+        <div class="summary-line" style="border:none;padding:0 0 6px;font-weight:700;color:var(--text)">
+          <span>= Líquido a dividir</span>
+          <span id="s_liquid">R$ 0</span>
+        </div>
+        <div class="summary-line" style="border:none;padding:3px 0 0;font-size:0.82rem">
+          <span style="color:var(--muted)">&#128187; Dev (<span id="s_dev_pct">50</span>%)</span>
+          <span style="color:var(--accent);font-weight:600" id="s_dev_share">R$ 0</span>
+        </div>
+        <div class="summary-line" style="border:none;padding:3px 0 0;font-size:0.82rem">
+          <span style="color:var(--muted)">&#129309; Parceiro (<span id="s_partner_pct">50</span>%)</span>
+          <span style="color:var(--accent2);font-weight:600" id="s_partner_share">R$ 0</span>
+        </div>
       </div>
 
       <div class="total-block">
-        <div class="label">Total do Projeto (único)</div>
+        <div class="label">Total do Projeto (preço ao cliente)</div>
         <div class="amount" id="s_total">R$ 0</div>
         <div class="per-month" id="s_permonth">— / mês durante o projeto</div>
       </div>
@@ -1438,24 +1449,39 @@ function calculate() {
   const total = revenue;
   const fmt = v => sym + ' ' + Math.round(v).toLocaleString('pt-BR');
 
-  document.getElementById('s_team').textContent    = fmt(teamCost);
-  document.getElementById('s_infra').textContent   = fmt(infraCost);
-  document.getElementById('s_tools').textContent   = fmt(toolsCost);
-  document.getElementById('s_direct').textContent  = fmt(direct);
-  document.getElementById('s_tax').textContent     = fmt(taxAmt);
-  document.getElementById('s_margin').textContent  = fmt(marginAmt);
-  document.getElementById('s_total').textContent   = fmt(total);
-  document.getElementById('s_permonth').textContent = fmt(total / dur) + '/mês';
+  // Operational costs = tools + infra (only if dev pays)
+  const opCost = toolsCost + (clientePagaInfra ? 0 : infraCost);
 
-  // Partners split
+  // Liquid = what's left to split 100% between partners
+  const liquid = Math.max(0, total - taxAmt - opCost);
+
+  // Partners split (100% of liquid)
   const devPct     = Math.min(100, Math.max(0, +document.getElementById('devPct').value     || 50));
   const partnerPct = Math.min(100, Math.max(0, +document.getElementById('partnerPct').value || 50));
-  const devShare     = marginAmt * devPct     / 100;
-  const partnerShare = marginAmt * partnerPct / 100;
-  document.getElementById('s_dev_pct').textContent      = devPct;
-  document.getElementById('s_partner_pct').textContent  = partnerPct;
-  document.getElementById('s_dev_share').textContent    = fmt(devShare);
+  const devShare     = liquid * devPct     / 100;
+  const partnerShare = liquid * partnerPct / 100;
+
+  // Pricing reference block
+  document.getElementById('s_team').textContent      = fmt(teamCost);
+  document.getElementById('s_opcost').textContent    = fmt(opCost);
+  document.getElementById('s_total_ref').textContent = fmt(total);
+  document.getElementById('s_total').textContent     = fmt(total);
+  document.getElementById('s_permonth').textContent  = fmt(total / dur) + '/mês';
+
+  // Liquid split block
+  document.getElementById('s_total2').textContent        = fmt(total);
+  document.getElementById('s_tax').textContent           = '− ' + fmt(taxAmt);
+  document.getElementById('s_opcost2').textContent       = '− ' + fmt(opCost);
+  document.getElementById('s_liquid').textContent        = fmt(liquid);
+  document.getElementById('s_dev_pct').textContent       = devPct;
+  document.getElementById('s_partner_pct').textContent   = partnerPct;
+  document.getElementById('s_dev_share').textContent     = fmt(devShare);
   document.getElementById('s_partner_share').textContent = fmt(partnerShare);
+
+  // Infra label hint
+  const clientePagaInfraChk = document.getElementById('clientePagaInfra').checked;
+  document.getElementById('s_infra_label').textContent =
+    clientePagaInfraChk ? 'Ferramentas (infra = cliente)' : 'Ferramentas + Infra';
 
   // Regime label on summary
   const regKey = document.getElementById('taxRegime').value;
@@ -1574,8 +1600,15 @@ function exportPDF() {
     ];
   })() : [];
 
+  const totalVal   = document.getElementById('s_total').textContent;
+  const taxVal     = document.getElementById('s_tax').textContent;
+  const opCostVal  = document.getElementById('s_opcost').textContent;
+  const liquidVal  = document.getElementById('s_liquid').textContent;
+  const devVal     = document.getElementById('s_dev_share').textContent;
+  const partnerVal = document.getElementById('s_partner_share').textContent;
+
   const lines = [
-    `ORÇAMENTO DE PROJETO TECH`,
+    `RESUMO INTERNO — ORÇAMENTO TECH`,
     `═══════════════════════════════════════`,
     `Projeto:   ${name}`,
     `Tipo:      ${type}`,
@@ -1583,42 +1616,49 @@ function exportPDF() {
     `Regime:    ${regime}`,
     `Gerado em: ${new Date().toLocaleDateString('pt-BR')}`,
     ``,
-    `━━━ CUSTOS DO PROJETO (pagos pelo dev) ━━━`,
+    `━━━ REFERÊNCIA DE PRECIFICAÇÃO ━━━`,
     ``,
-    `DEV / EQUIPE`,
+    `Seu tempo (dev)`,
     ...teamLines,
-    `  Subtotal dev:             ${document.getElementById('s_team').textContent}`,
+    `  Ref. custo do seu tempo:  ${document.getElementById('s_team').textContent}`,
     ``,
-    `FERRAMENTAS & LICENÇAS (dev paga)`,
+    `Ferramentas & Licenças (dev paga)`,
     ...toolLines,
-    `  Subtotal ferramentas:     ${document.getElementById('s_tools').textContent}`,
     ``,
     ...(clienteInfra ? [
-      `INFRAESTRUTURA (cliente paga diretamente)`,
+      `Infraestrutura — PAGA PELO CLIENTE`,
       ...infraLines,
       `  Total infra mensal:       ${fmt(infraTotal)}/mês`,
-      `  * Esses valores NÃO entram no custo do projeto`,
       ``,
     ] : [
-      `INFRAESTRUTURA (dev paga)`,
+      `Infraestrutura (dev paga)`,
       ...infraLines,
-      `  Subtotal infra:           ${document.getElementById('s_infra').textContent}`,
       ``,
     ]),
-    `CUSTO DIRETO TOTAL:        ${document.getElementById('s_direct').textContent}`,
+    `━━━ FLUXO DO PAGAMENTO ━━━`,
     ``,
-    `━━━ IMPOSTOS (sobre receita) ━━━`,
-    `  Regime: ${regime}`,
+    `  Preço ao cliente:         ${totalVal}`,
+    ``,
+    `  − Impostos (${regime}):`,
     ...taxLines,
-    `  Total impostos:           ${document.getElementById('s_tax').textContent}`,
+    `    Total impostos:         ${taxVal.replace('− ','')}`,
     ``,
-    `━━━ MARGEM & DIVISÃO ━━━`,
-    `  Margem de lucro:          ${document.getElementById('s_margin').textContent}`,
-    `    Dev (${devPct}%):             ${document.getElementById('s_dev_share').textContent}`,
-    `    Parceiro (${partnerPct}%):        ${document.getElementById('s_partner_share').textContent}`,
+    `  − Custos operacionais:    ${opCostVal}`,
+    `    (ferramentas${clienteInfra ? '' : ' + infra'})`,
+    ``,
+    `  ─────────────────────────────────────`,
+    `  = LÍQUIDO A DIVIDIR:      ${liquidVal}`,
+    ``,
+    `━━━ DIVISÃO ENTRE SÓCIOS ━━━`,
+    ``,
+    `  Dev (${devPct}%):               ${devVal}`,
+    `    Cobre seu tempo (${document.getElementById('s_team').textContent})`,
+    `    + lucro líquido da sua parte`,
+    ``,
+    `  Parceiro Comercial (${partnerPct}%): ${partnerVal}`,
     ``,
     `───────────────────────────────────────`,
-    `TOTAL DO PROJETO:          ${document.getElementById('s_total').textContent}`,
+    `PREÇO AO CLIENTE:          ${totalVal}`,
     `Custo mensal (durante):    ${document.getElementById('s_permonth').textContent}`,
     ...mrrLines,
   ];
