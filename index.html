@@ -551,8 +551,15 @@
     <!-- Infrastructure -->
     <div class="card">
       <h2><span class="icon">&#9729;</span> Infraestrutura / Cloud (mensal)</h2>
-      <div class="extras-grid" id="infraGrid"></div>
-      <button class="btn-add" onclick="addInfraRow()">+ Adicionar item</button>
+      <label style="display:flex;align-items:center;gap:10px;margin-bottom:14px;cursor:pointer;font-size:0.85rem;color:var(--text)">
+        <input type="checkbox" id="clientePagaInfra" onchange="calculate()"
+          style="width:16px;height:16px;accent-color:var(--accent2);cursor:pointer" />
+        Cliente paga a infra — <span style="color:var(--muted)">não entra no seu custo</span>
+      </label>
+      <div id="infraItens">
+        <div class="extras-grid" id="infraGrid"></div>
+        <button class="btn-add" onclick="addInfraRow()">+ Adicionar item</button>
+      </div>
     </div>
 
     <!-- Software / Licenses -->
@@ -595,6 +602,33 @@
       <div class="tax-total-row">
         <span>Carga tributária efetiva</span>
         <span id="taxEffectiveRate" style="color:var(--accent2)">0%</span>
+      </div>
+    </div>
+
+    <!-- Mensalidade recorrente -->
+    <div class="card">
+      <h2><span class="icon">&#128260;</span> Mensalidade Recorrente</h2>
+      <label style="display:flex;align-items:center;gap:10px;margin-bottom:16px;cursor:pointer;font-size:0.85rem;color:var(--text)">
+        <input type="checkbox" id="temMensalidade" onchange="toggleMensalidade();calculate()"
+          style="width:16px;height:16px;accent-color:var(--accent2);cursor:pointer" />
+        Projeto tem mensalidade pós-entrega
+      </label>
+      <div id="mensalidadeItens" style="display:none">
+        <div class="form-row">
+          <div>
+            <label>Valor bruto (R$/mês)</label>
+            <input type="number" id="mensalidadeValor" value="1500" min="0"
+              oninput="calculate()" />
+          </div>
+          <div>
+            <label>Início (mês após entrega)</label>
+            <input type="number" id="mensalidadeInicio" value="1" min="0"
+              oninput="calculate()" />
+          </div>
+        </div>
+        <p style="font-size:0.78rem;color:var(--muted);margin-top:4px">
+          Usa o mesmo regime tributário selecionado acima. Divisão entre sócios igual à do projeto.
+        </p>
       </div>
     </div>
 
@@ -689,9 +723,15 @@
       </div>
 
       <div class="total-block">
-        <div class="label">Total do Projeto</div>
+        <div class="label">Total do Projeto (único)</div>
         <div class="amount" id="s_total">R$ 0</div>
-        <div class="per-month" id="s_permonth">— por mês</div>
+        <div class="per-month" id="s_permonth">— / mês durante o projeto</div>
+      </div>
+
+      <div id="s_mrr_block" style="display:none;margin-top:12px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.3);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Mensalidade (MRR)</div>
+        <div style="font-size:1.6rem;font-weight:700;color:var(--accent2);margin-top:4px" id="s_mrr">R$ 0</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-top:4px" id="s_mrr_split"></div>
       </div>
 
       <div style="margin-top:16px; padding:12px; background:var(--surface2); border-radius:8px; font-size:0.8rem; color:var(--muted); text-align:center;">
@@ -992,6 +1032,12 @@ function syncSlider(id, valId) {
   document.getElementById(valId).textContent = document.getElementById(id).value + '%';
 }
 
+// ─── Mensalidade toggle ───────────────────────────────────────────────────────
+function toggleMensalidade() {
+  const on = document.getElementById('temMensalidade').checked;
+  document.getElementById('mensalidadeItens').style.display = on ? 'block' : 'none';
+}
+
 // ─── Partners split ───────────────────────────────────────────────────────────
 function clampPartners(changed) {
   let dev     = Math.min(100, Math.max(0, +document.getElementById('devPct').value     || 0));
@@ -1119,7 +1165,8 @@ function calculate() {
   const sym = CURRENCIES[cur];
 
   const teamCost  = team.reduce((s, r) => s + r.qty * r.hours * r.rate * dur, 0);
-  const infraCost = infra.reduce((s, r) => s + r.value * dur, 0);
+  const clientePagaInfra = document.getElementById('clientePagaInfra').checked;
+  const infraCost = clientePagaInfra ? 0 : infra.reduce((s, r) => s + r.value * dur, 0);
   const toolsCost = tools.reduce((s, r) => s + r.value * dur, 0);
   const direct   = teamCost + infraCost + toolsCost;
   const costBase = direct;
@@ -1196,6 +1243,33 @@ function calculate() {
   if (total < 50000) { badge.textContent = 'Baixa'; badge.className = 'badge badge-low'; }
   else if (total < 300000) { badge.textContent = 'Média'; badge.className = 'badge badge-med'; }
   else { badge.textContent = 'Alta'; badge.className = 'badge badge-high'; }
+
+  // MRR
+  const temMens = document.getElementById('temMensalidade').checked;
+  const mrrBlock = document.getElementById('s_mrr_block');
+  if (temMens) {
+    const mensValor = Math.max(0, +document.getElementById('mensalidadeValor').value || 0);
+    // Aplica mesmo regime tributário sobre a mensalidade
+    const taxInfoMrr = getTaxInfo();
+    let mrrLiquido;
+    if (taxInfoMrr.fixedAmt > 0) {
+      mrrLiquido = mensValor - taxInfoMrr.fixedAmt / dur;
+    } else {
+      mrrLiquido = mensValor * (1 - taxInfoMrr.totalRate);
+    }
+    mrrLiquido = Math.max(0, mrrLiquido);
+    const devPct     = Math.min(100, Math.max(0, +document.getElementById('devPct').value     || 50));
+    const partnerPct = Math.min(100, Math.max(0, +document.getElementById('partnerPct').value || 50));
+    const devMrr     = mrrLiquido * devPct     / 100;
+    const partnerMrr = mrrLiquido * partnerPct / 100;
+
+    mrrBlock.style.display = 'block';
+    document.getElementById('s_mrr').textContent = fmt(mrrLiquido) + '/mês';
+    document.getElementById('s_mrr_split').textContent =
+      `Dev ${fmt(devMrr)} · Parceiro ${fmt(partnerMrr)}`;
+  } else {
+    mrrBlock.style.display = 'none';
+  }
 }
 
 // ─── Export ───────────────────────────────────────────────────────────────────
@@ -1233,10 +1307,20 @@ function exportPDF() {
     `Margem de lucro:       ${document.getElementById('s_margin').textContent}`,
     `  Dev (${document.getElementById('s_dev_pct').textContent}%):          ${document.getElementById('s_dev_share').textContent}`,
     `  Parceiro (${document.getElementById('s_partner_pct').textContent}%):      ${document.getElementById('s_partner_share').textContent}`,
+    document.getElementById('clientePagaInfra').checked
+      ? `Infraestrutura:        paga pelo cliente`
+      : ``,
     `───────────────────────────────────────`,
     `TOTAL DO PROJETO:      ${total}`,
-    `Por mês:               ${pm}`,
+    `Por mês (projeto):     ${pm}`,
     ``,
+    ...(document.getElementById('temMensalidade').checked ? [
+      `MENSALIDADE RECORRENTE`,
+      `  Bruto:               ${document.getElementById('mensalidadeValor').value} /mês`,
+      `  Líquido (c/ impostos): ${document.getElementById('s_mrr').textContent}`,
+      `  ${document.getElementById('s_mrr_split').textContent}`,
+      ``,
+    ] : []),
     `Gerado em: ${new Date().toLocaleDateString('pt-BR')}`,
   ];
 
